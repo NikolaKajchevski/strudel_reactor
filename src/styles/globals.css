@@ -1,0 +1,19 @@
+/* Import Tailwind's base styles, components, and utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* This is the only custom CSS from your original file.
+  We add it here so Tailwind can process it.
+*/
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Optional: You can add base body styles here. 
+  The component already sets its own background, but this is good practice.
+*/
+body {
+  @apply bg-slate-900 text-white;
+}
