@@ -24,22 +24,7 @@ const PanelWrapper = ({
         )}
         <span className="font-semibold text-sm">{title}</span>
       </div>
-      
-      {title === "REPL Output" && (
-        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-          isPlaying ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
-        }`}>
-          {isPlaying ? 'Playing' : 'Stopped'}
-        </div>
-      )}
 
-      {showWindowControls && (
-        <div className="flex gap-1">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-        </div>
-      )}
     </div>
     {children}
   </div>

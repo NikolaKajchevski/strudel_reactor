@@ -1,6 +1,8 @@
 
 import React, { useState, useCallback } from 'react';
 import PreprocessorEditor from './Components/audio/PreprocessorEditor';
+import ReplOutput from './Components/audio/ReplOutput';
+import PlaybackControls from './Components/controls/PlaybackControl';
 
 const App = () => {
   return (
@@ -15,6 +17,8 @@ const App = () => {
         {/* Left Column (Editor, Output, Controls)*/}
         <div className="lg:col-span-2 space-y-6">
           <PreprocessorEditor/>
+          <ReplOutput/>
+          <PlaybackControls/>
         </div>
 
         {/* Right Column (Control Panel, Visualization)*/}
