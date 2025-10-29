@@ -1,14 +1,41 @@
-import {Sliders} from 'lucide-react'
+import { Sliders } from 'lucide-react'
 import React, { useState, useCallback } from 'react';
 import PreprocessorEditor from './Components/audio/PreprocessorEditor';
 import ReplOutput from './Components/audio/ReplOutput';
 import PlaybackControls from './Components/controls/PlaybackControl';
 import TabNavigation from './Components/controls/TabNavigation';
-import EffectsControl from './Components/controls/panels/SettingsControl';
-import SettingsControl from './Components/controls/panels/EffectsControl';
+import EffectsControl from './Components/controls/panels/EffectsControl';
 import PanelWrapper from './layout/PanelWrapper';
 
+
 const App = () => {
+  // --- STATE ---
+  const [activeTab, setActiveTab] = useState('effects');
+
+  const [effects, setEffects] = useState({
+    reverb: false,
+    chipmunk: false,
+    distortion: false
+  });
+
+  // --- HANDLERS ---
+  const toggleEffect = useCallback((key) => {
+    setEffects(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  // --- RENDER CONTROL PANEL CONTENT ---
+    // --- RENDER CONTROL PANEL CONTENT ---
+  const renderControlPanelContent = () => {
+    switch (activeTab) {
+      case 'effects':
+        return <EffectsControl effects={effects} toggleEffect={toggleEffect} />;
+      case 'settings':
+        return <div className="p-4 text-gray-500">Settings</div>;
+      default:
+        return <div className="p-4 text-gray-500">Select a panel to start controlling parameters.</div>;
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8 lg:p-12 font-sans">
@@ -22,7 +49,7 @@ const App = () => {
         {/* Left Column (Editor, Output, Controls) - span 2 */}
         <div className="lg:col-span-2 space-y-6">
           <PreprocessorEditor />
-          <ReplOutput  />
+          <ReplOutput />
           <PlaybackControls />
         </div>
 
@@ -30,9 +57,14 @@ const App = () => {
         <div className="space-y-6">
           
           {/* Tab Navigation */}
-          <TabNavigation/>
+          <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
           
           {/* Control Panel Content */}
+          <PanelWrapper title="Parameter Control" icon={Sliders} className="min-h-[400px]">
+            <div className="p-6">
+              {renderControlPanelContent()}
+            </div>
+          </PanelWrapper>
 
           {/* Visualization */}
 
