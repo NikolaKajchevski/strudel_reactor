@@ -8,8 +8,12 @@ const EffectsControl = ({ effects, toggleEffect }) => (
       <Sliders className="w-5 h-5 text-pink-400" />
       Effects
     </h3>
-    {Object.entries(effects).map(([key, value]) => (
-      <div key={key} className="flex items-center justify-between">
+
+
+    {Object.entries(effects).map(([key, value]) => 
+    
+    (
+      <div key={key} className=" space-y-6 flex items-center justify-between ">
         <span className="capitalize font-medium">{key}</span>
         <input
           type="radio"

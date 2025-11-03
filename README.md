@@ -68,3 +68,22 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+## To the marker
+
+For some reason NPM did not allow me to have tailwind and strudel in the same lockdown json file.
+I tried for several hours to make it work but it wouldn't lunch unless one of the two packages were missing
+Since I had my styling complete by that point I could not abandon all the tailwind code I had written so I had to make it work. I had to do this by using yarn to lunch to the project.
+
+1. If the yarn.lock file isn't in my final submission run the command
+
+-- yarn install
+
+2. Once installed run the command 
+
+-- yarn start
+
+I have had a conversation with Mark about the issue if you can not lunch the application following these steps please send me a message via mobile I will respond as soon as possible to get it sorted. These steps worked for me but I have had issue with the packages throught the assignment so who knows.
+
+contact: 0473431030

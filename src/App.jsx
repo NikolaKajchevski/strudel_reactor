@@ -1,14 +1,16 @@
 import { Sliders } from 'lucide-react'
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, } from 'react';
 import PreprocessorEditor from './Components/audio/PreprocessorEditor';
 import ReplOutput from './Components/audio/ReplOutput';
 import PlaybackControls from './Components/controls/PlaybackControl';
 import TabNavigation from './Components/controls/TabNavigation';
 import EffectsControl from './Components/controls/panels/EffectsControl';
 import PanelWrapper from './layout/PanelWrapper';
+import SettingsControl from './Components/controls/panels/SettingsControl';
 
 
 const App = () => {
+
   // --- STATE ---
   const [activeTab, setActiveTab] = useState('effects');
 
@@ -18,19 +20,32 @@ const App = () => {
     distortion: false
   });
 
+  const [sliders, setSliders] = useState({
+    value: 50,
+    base: 50,
+    treble: 50,
+  })
+
   // --- HANDLERS ---
+
+  // Effect toggle logic  
   const toggleEffect = useCallback((key) => {
     setEffects(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  // Setting slider logic
+  const handleSliderChange = useCallback((key, value) => {
+    setSliders(prev => ({ ...prev, [key]: parseInt(value) }));
+  }, []);
+
+
   // --- RENDER CONTROL PANEL CONTENT ---
-    // --- RENDER CONTROL PANEL CONTENT ---
   const renderControlPanelContent = () => {
     switch (activeTab) {
       case 'effects':
         return <EffectsControl effects={effects} toggleEffect={toggleEffect} />;
       case 'settings':
-        return <div className="p-4 text-gray-500">Settings</div>;
+        return <SettingsControl sliders={sliders} handleSliderChange={handleSliderChange} />;
       default:
         return <div className="p-4 text-gray-500">Select a panel to start controlling parameters.</div>;
     }
@@ -48,8 +63,9 @@ const App = () => {
 
         {/* Left Column (Editor, Output, Controls) - span 2 */}
         <div className="lg:col-span-2 space-y-6">
+          {/* 3. Pass state and ref to the PreprocessorEditor */}
           <PreprocessorEditor />
-          <ReplOutput />
+          <ReplOutput />         
           <PlaybackControls />
         </div>
 
@@ -66,7 +82,8 @@ const App = () => {
             </div>
           </PanelWrapper>
 
-          {/* Visualization */}
+          
+          {/* Visualization Placeholder */}
 
         </div>
       </div>
