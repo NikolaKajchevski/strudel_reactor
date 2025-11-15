@@ -25,7 +25,7 @@ const SettingsControl = ({ sliders, handleSliderChange }) => (
 
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="font-medium">Base</span>
+        <span className="font-medium">Bass</span>
         <span className="text-purple-400 font-semibold">%</span>
       </div>
       <input

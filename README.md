@@ -86,4 +86,3 @@ Since I had my styling complete by that point I could not abandon all the tailwi
 
 I have had a conversation with Mark about the issue if you can not lunch the application following these steps please send me a message via mobile I will respond as soon as possible to get it sorted. These steps worked for me but I have had issue with the packages throught the assignment so who knows.
 
-contact: 0473431030

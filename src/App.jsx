@@ -1,7 +1,6 @@
-import { Sliders } from 'lucide-react'
-import React, { useState, useCallback, } from 'react';
+import { Sliders, AudioLines, Music, Settings, Play, StopCircle, Zap } from 'lucide-react'
+import React, { useState, useCallback, useRef } from 'react';
 import PreprocessorEditor from './Components/audio/PreprocessorEditor';
-import ReplOutput from './Components/audio/ReplOutput';
 import PlaybackControls from './Components/controls/PlaybackControl';
 import TabNavigation from './Components/controls/TabNavigation';
 import EffectsControl from './Components/controls/panels/EffectsControl';
@@ -10,9 +9,11 @@ import SettingsControl from './Components/controls/panels/SettingsControl';
 
 
 const App = () => {
-
   // --- STATE ---
   const [activeTab, setActiveTab] = useState('effects');
+
+  // 1. New state to track the selected radio button: 'ON' (default) or 'HUSH'
+  const [radioSelection, setRadioSelection] = useState('ON'); 
 
   const [effects, setEffects] = useState({
     reverb: false,
@@ -22,20 +23,54 @@ const App = () => {
 
   const [sliders, setSliders] = useState({
     value: 50,
-    base: 50,
+    bass: 50,
     treble: 50,
   })
 
+  // 2. Ref to access the methods exposed by PreprocessorEditor (evaluate, stop, etc.)
+  const editorRef = useRef(null); 
+
+
   // --- HANDLERS ---
 
-  // Effect toggle logic  
+  // New handler for the radio button change
+  const handleRadioChange = useCallback((event) => {
+    const newSelection = event.target.value;
+    setRadioSelection(newSelection); 
+    
+    // In the old code, ProcAndPlay ran after a radio button change if audio was started.
+    // We call the exposed function via the ref.
+    if (editorRef.current) {
+        // We only want to ProcAndPlay if the editor is currently running.
+        editorRef.current.procAndPlay();
+    }
+  }, []);
+
   const toggleEffect = useCallback((key) => {
     setEffects(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  // Setting slider logic
   const handleSliderChange = useCallback((key, value) => {
     setSliders(prev => ({ ...prev, [key]: parseInt(value) }));
+  }, []);
+
+  // 4. Handlers for PlaybackControls to interact with StrudelMirror
+  const handlePlay = useCallback(() => {
+    editorRef.current?.evaluate();
+  }, []);
+
+  const handleStop = useCallback(() => {
+    editorRef.current?.stop();
+  }, []);
+
+  const handlePreprocess = useCallback(() => {
+    editorRef.current?.preprocess();
+  }, []);
+
+  const handleProcAndPlay = useCallback(() => {
+    // This button press ensures preprocessing always happens, then plays.
+    editorRef.current?.preprocess();
+    editorRef.current?.evaluate();
   }, []);
 
 
@@ -64,12 +99,22 @@ const App = () => {
         {/* Left Column (Editor, Output, Controls) - span 2 */}
         <div className="lg:col-span-2 space-y-6">
           {/* 3. Pass state and ref to the PreprocessorEditor */}
-          <PreprocessorEditor />
-          <ReplOutput />         
-          <PlaybackControls />
+          <PreprocessorEditor 
+            ref={editorRef} 
+            radioSelection={radioSelection} 
+          />
+          
+          
+          {/* Pass handlers to PlaybackControls */}
+          <PlaybackControls 
+            onPlay={handlePlay}
+            onStop={handleStop}
+            onPreprocess={handlePreprocess}
+            onProcAndPlay={handleProcAndPlay}
+          />
         </div>
 
-        {/* Right Column (Control Panel, Visualization) - span 1 */}
+        {/* Right Column (Control Panel, Radio Buttons, Visualization) - span 1 */}
         <div className="space-y-6">
           
           {/* Tab Navigation */}
@@ -82,8 +127,15 @@ const App = () => {
             </div>
           </PanelWrapper>
 
+          {/* New Radio Button Panel */}
+
           
           {/* Visualization Placeholder */}
+          <PanelWrapper title="Pianoroll Visualization" icon={AudioLines}>
+             <div className="p-4">
+                <canvas id="roll" className="w-full h-40 bg-black/50 rounded-lg"></canvas>
+             </div>
+          </PanelWrapper>
 
         </div>
       </div>
