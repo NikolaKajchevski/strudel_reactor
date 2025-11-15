@@ -41,6 +41,7 @@ const PreprocessorEditor = forwardRef(({ radioSelection }, ref) => {
     const [procText, setProcText] = useState(stranger_tune);
     const editorRootRef = useRef(null);
     const hasRun = useRef(false);
+    const [alertMessage, setAlertMessage] = useState(null);
 
     useEffect(() => {
         if (!hasRun.current) {
@@ -95,7 +96,19 @@ const PreprocessorEditor = forwardRef(({ radioSelection }, ref) => {
     }, []);
 
     useImperativeHandle(ref, () => ({
-        evaluate: () => globalEditor?.evaluate(),
+        evaluate: async () => {
+            try {
+                await globalEditor?.evaluate();
+            } catch (error) {
+                const errorMsg = error.message || error.toString();
+                if (errorMsg.includes('no code to evaluate')) {
+                    setAlertMessage('Please process your code before playing');
+                } else {
+                    console.error('Evaluation error:', error);
+                    setAlertMessage(`Error: ${errorMsg}`);
+                }
+            }
+        },
         stop: () => globalEditor?.stop(),
         preprocess: () => Proc(procText, radioSelection),
         procAndPlay: () => ProcAndPlay(procText, radioSelection),
@@ -103,6 +116,41 @@ const PreprocessorEditor = forwardRef(({ radioSelection }, ref) => {
     
     return (
         <div>
+            {/* Custom Alert Modal */}
+            {alertMessage && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setAlertMessage(null)}
+                    ></div>
+                    
+                    {/* Alert Box */}
+                    <div className="relative bg-gradient-to-br from-cyan-400 to-blue-500 p-1 rounded-xl shadow-2xl max-w-md w-full mx-4 animate-[scale-in_0.2s_ease-out]">
+                        <div className="bg-slate-900 rounded-lg p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-cyan-400">Alert</h3>
+                                <button
+                                    onClick={() => setAlertMessage(null)}
+                                    className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <p className="text-gray-300 mb-6">{alertMessage}</p>
+                            <button
+                                onClick={() => setAlertMessage(null)}
+                                className="w-full bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-900 font-semibold py-3 px-6 rounded-lg hover:from-cyan-300 hover:to-blue-400 transition-all duration-200 shadow-lg hover:shadow-cyan-400/50"
+                            >
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <PanelWrapper title="Preprocessor Editor" icon={Music}>
                 <div className="p-6 space-y-4">
                     <div>
