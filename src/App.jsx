@@ -1,4 +1,4 @@
-import { Sliders, AudioLines, Music, Settings, Play, StopCircle, Zap } from 'lucide-react'
+import { Sliders, AudioLines, Music, Settings } from 'lucide-react';
 import React, { useState, useCallback, useRef } from 'react';
 import PreprocessorEditor from './Components/audio/PreprocessorEditor';
 import PlaybackControls from './Components/controls/PlaybackControl';
@@ -7,54 +7,92 @@ import EffectsControl from './Components/controls/panels/EffectsControl';
 import PanelWrapper from './layout/PanelWrapper';
 import SettingsControl from './Components/controls/panels/SettingsControl';
 
-
 const App = () => {
   // --- STATE ---
   const [activeTab, setActiveTab] = useState('effects');
 
-  // 1. New state to track the selected radio button: 'ON' (default) or 'HUSH'
-  const [radioSelection, setRadioSelection] = useState('ON'); 
+  // Preprocess radio: 'ON' or 'HUSH'
+  const [radioSelection, setRadioSelection] = useState('ON');
 
+  // Effects toggles
   const [effects, setEffects] = useState({
     reverb: false,
     chipmunk: false,
-    distortion: false
+    distortion: false,
   });
 
   const [sliders, setSliders] = useState({
     value: 50,
     bass: 50,
     treble: 50,
-  })
+  });
 
-  // 2. Ref to access the methods exposed by PreprocessorEditor (evaluate, stop, etc.)
-  const editorRef = useRef(null); 
-
+  // Ref to access editor methods
+  const editorRef = useRef(null);
 
   // --- HANDLERS ---
-
-  // New handler for the radio button change
+  // Handle radio selection changes.
+  // If switching to HUSH => clear all effects (Option A).
   const handleRadioChange = useCallback((event) => {
     const newSelection = event.target.value;
-    setRadioSelection(newSelection); 
-    
-    // In the old code, ProcAndPlay ran after a radio button change if audio was started.
-    // We call the exposed function via the ref.
-    if (editorRef.current) {
-        // We only want to ProcAndPlay if the editor is currently running.
-        editorRef.current.procAndPlay();
+    setRadioSelection(newSelection);
+
+    if (newSelection === 'HUSH') {
+      // Clear all effect toggles in the UI
+      setEffects(prev => {
+        const cleared = Object.keys(prev).reduce((acc, k) => ({ ...acc, [k]: false }), {});
+        return cleared;
+      });
+
+      // Reprocess so HUSH takes effect immediately (no effects applied).
+      try {
+        editorRef.current?.preprocess();
+      } catch (e) {
+        // swallow
+      }
+    } else {
+      // When switching back to ON, reprocess with the (possibly empty) effects state.
+      try {
+        editorRef.current?.preprocess();
+      } catch (e) {
+        // swallow
+      }
+    }
+
+    // preserve previous UX: if editor running, attempt immediate proc+play
+    try {
+      editorRef.current?.procAndPlay();
+    } catch (e) {
+      // ignore
     }
   }, []);
 
+  // Toggle a specific effect on/off.
   const toggleEffect = useCallback((key) => {
-    setEffects(prev => ({ ...prev, [key]: !prev[key] }));
-  }, []);
+    setEffects(prev => {
+      // If currently HUSH, enabling effects should have no effect until radio set to ON.
+      // We still update the toggle state visually; HUSH will always clear toggles immediately.
+      const next = { ...prev, [key]: !prev[key] };
+
+      // If user turned distortion ON while radio is 'ON', provide immediate audible feedback:
+      if (key === 'distortion' && next.distortion && radioSelection === 'ON') {
+        try {
+          // best-effort immediate feedback
+          editorRef.current?.procAndPlay();
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      return next;
+    });
+  }, [radioSelection]);
 
   const handleSliderChange = useCallback((key, value) => {
     setSliders(prev => ({ ...prev, [key]: parseInt(value) }));
   }, []);
 
-  // 4. Handlers for PlaybackControls to interact with StrudelMirror
+  // Playback control handlers
   const handlePlay = useCallback(() => {
     editorRef.current?.evaluate();
   }, []);
@@ -68,11 +106,13 @@ const App = () => {
   }, []);
 
   const handleProcAndPlay = useCallback(() => {
-    // This button press ensures preprocessing always happens, then plays.
     editorRef.current?.preprocess();
     editorRef.current?.evaluate();
   }, []);
 
+  // Compute distortionEnabled per Option 3 semantics:
+  // distortion applied only when radioSelection === 'ON' AND effects.distortion === true
+  const distortionEnabled = radioSelection === 'ON' && effects.distortion === true;
 
   // --- RENDER CONTROL PANEL CONTENT ---
   const renderControlPanelContent = () => {
@@ -86,7 +126,6 @@ const App = () => {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8 lg:p-12 font-sans">
       <h1 className="text-3xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
@@ -95,18 +134,15 @@ const App = () => {
 
       {/* Main Grid: Left (2/3) and Right (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Left Column (Editor, Output, Controls) - span 2 */}
+        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* 3. Pass state and ref to the PreprocessorEditor */}
-          <PreprocessorEditor 
-            ref={editorRef} 
-            radioSelection={radioSelection} 
+          <PreprocessorEditor
+            ref={editorRef}
+            radioSelection={radioSelection}
+            effects={effects}
           />
-          
-          
-          {/* Pass handlers to PlaybackControls */}
-          <PlaybackControls 
+
+          <PlaybackControls
             onPlay={handlePlay}
             onStop={handleStop}
             onPreprocess={handlePreprocess}
@@ -114,29 +150,34 @@ const App = () => {
           />
         </div>
 
-        {/* Right Column (Control Panel, Radio Buttons, Visualization) - span 1 */}
+        {/* Right Column */}
         <div className="space-y-6">
-          
-          {/* Tab Navigation */}
           <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
-          
-          {/* Control Panel Content */}
+
           <PanelWrapper title="Parameter Control" icon={Sliders} className="min-h-[400px]">
             <div className="p-6">
               {renderControlPanelContent()}
             </div>
           </PanelWrapper>
 
-          {/* New Radio Button Panel */}
-
-          
-          {/* Visualization Placeholder */}
-          <PanelWrapper title="Pianoroll Visualization" icon={AudioLines}>
-             <div className="p-4">
-                <canvas id="roll" className="w-full h-40 bg-black/50 rounded-lg"></canvas>
-             </div>
+          <PanelWrapper title="Preprocess Mode" icon={Settings}>
+            <div className="p-4 space-y-3">
+              <label className="flex items-center gap-3">
+                <input type="radio" value="ON" checked={radioSelection === 'ON'} onChange={handleRadioChange} />
+                <span className="ml-2">ON</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input type="radio" value="HUSH" checked={radioSelection === 'HUSH'} onChange={handleRadioChange} />
+                <span className="ml-2">HUSH (effects off)</span>
+              </label>
+            </div>
           </PanelWrapper>
 
+          <PanelWrapper title="Pianoroll Visualization" icon={AudioLines}>
+            <div className="p-4">
+              <canvas id="roll" className="w-full h-40 bg-black/50 rounded-lg"></canvas>
+            </div>
+          </PanelWrapper>
         </div>
       </div>
     </div>
