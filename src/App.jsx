@@ -74,8 +74,8 @@ const App = () => {
       // We still update the toggle state visually; HUSH will always clear toggles immediately.
       const next = { ...prev, [key]: !prev[key] };
 
-      // If user turned distortion ON while radio is 'ON', provide immediate audible feedback:
-      if (key === 'distortion' && next.distortion && radioSelection === 'ON') {
+      // If user turned an effect ON while radio is 'ON', provide immediate audible feedback:
+      if ((key === 'distortion' || key === 'reverb') && next[key] && radioSelection === 'ON') {
         try {
           // best-effort immediate feedback
           editorRef.current?.procAndPlay();
@@ -109,10 +109,6 @@ const App = () => {
     editorRef.current?.preprocess();
     editorRef.current?.evaluate();
   }, []);
-
-  // Compute distortionEnabled per Option 3 semantics:
-  // distortion applied only when radioSelection === 'ON' AND effects.distortion === true
-  const distortionEnabled = radioSelection === 'ON' && effects.distortion === true;
 
   // --- RENDER CONTROL PANEL CONTENT ---
   const renderControlPanelContent = () => {
