@@ -19,49 +19,53 @@ const ProcessText = (radioSelection) => (match, ...args) => {
   return replace;
 };
 
-/**
- * Proc: preprocesses the procText and sets code into the editor.
- *
- * Behavior:
- * - Always replaces the <p1_Radio> tokens according to radioSelection.
- * - If radioSelection === 'HUSH' -> do NOT apply any effects (effects bypassed).
- * - If radioSelection === 'ON' and effects.distortion === true -> inject .distort("3")
- *   BEFORE .postgain( and BEFORE .gain( occurrences (Option A).
- *
- * Note: uses simple heuristics for injection; extend if you need other anchor points.
- */
+
 const Proc = (procText, radioSelection, effects = {}) => {
   if (!globalEditor) return;
 
   const replacementFunction = ProcessText(radioSelection);
   let proc_text_replaced = procText.replaceAll('<p1_Radio>', replacementFunction);
 
-  // If HUSH: ensure no injected effects — we don't add anything.
+  // If HUSH ensure no injected effects — we don't add anything.
   if (radioSelection === 'HUSH') {
-    // Optionally: we can strip existing injected distort calls if present.
-    // Remove previously-inserted distort("3") occurrences to be safe.
-    proc_text_replaced = proc_text_replaced.replace(/\.distort\("3"\)/g, '');
+    // Remove previously-inserted effect markers to be safe.
+    proc_text_replaced = proc_text_replaced
+      .replace(/\.distort\("3"\)/g, '')
+      .replace(/\.room\("0.9"\)/g, '');
     globalEditor.setCode(proc_text_replaced);
     return;
   }
 
-  // radioSelection === 'ON': apply effects only if effects.distortion === true
+  // radioSelection === 'ON': apply effects only if toggled on
   const distortionEnabled = (effects && effects.distortion === true);
+  const reverbEnabled = (effects && effects.reverb === true);
 
+  // Distortion injection 
   if (distortionEnabled) {
     try {
-      // inject before .postgain( and .gain( (Option A)
       proc_text_replaced = proc_text_replaced
         .replace(/\.postgain\(/g, `.distort("3").postgain(`)
         .replace(/\.gain\(/g, `.distort("3").gain(`)
-        // Attach distort after .sound(...) when it's not already followed by a dot (simple heuristic)
         .replace(/(\.sound\([^)]*\))(?!\.)/g, `$1.distort("3")`);
     } catch (err) {
       console.warn("Distortion injection failed during preprocessing:", err);
     }
   } else {
-    // Ensure we remove any stray distort markers if user turned distortion off
+    // Remove any stray distort markers if user turned distortion off
     proc_text_replaced = proc_text_replaced.replace(/\.distort\("3"\)/g, '');
+  }
+
+  if (reverbEnabled) {
+    try {
+      proc_text_replaced = proc_text_replaced
+        .replace(/\.postgain\(/g, `.room("0.9").postgain(`)
+        .replace(/\.gain\(/g, `.room("0.9").gain(`)
+        .replace(/(\.sound\([^)]*\))(?!\.)/g, `$1.room("0.9")`);
+    } catch (err) {
+      console.warn("Reverb injection failed during preprocessing:", err);
+    }
+  } else {
+    proc_text_replaced = proc_text_replaced.replace(/\.room\("0.9"\)/g, '');
   }
 
   globalEditor.setCode(proc_text_replaced);
@@ -88,7 +92,6 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
         return;
       }
 
-      // HiDPI: double internal resolution (simple approach)
       canvas.width = canvas.width * 2;
       canvas.height = canvas.height * 2;
       const drawContext = canvas.getContext('2d');
@@ -121,12 +124,9 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
     }
 
     return () => {
-      // no-op cleanup for now
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once
+  }, []); 
 
-  // Re-run preprocessing when radioSelection, effects, or procText changes
   useEffect(() => {
     if (hasRun.current) {
       Proc(procText, radioSelection, effects);
