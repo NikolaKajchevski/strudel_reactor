@@ -19,10 +19,8 @@ const ProcessText = (radioSelection) => (match, ...args) => {
   return replace;
 };
 
-
 const Proc = (procText, radioSelection, effects = {}) => {
   if (!globalEditor) return;
-
   const replacementFunction = ProcessText(radioSelection);
   let proc_text_replaced = procText.replaceAll('<p1_Radio>', replacementFunction);
 
@@ -31,7 +29,8 @@ const Proc = (procText, radioSelection, effects = {}) => {
     // Remove previously-inserted effect markers to be safe.
     proc_text_replaced = proc_text_replaced
       .replace(/\.distort\("3"\)/g, '')
-      .replace(/\.room\("0.9"\)/g, '');
+      .replace(/\.room\("0.9"\)/g, '')
+      .replace(/\.speed\("1\.5"\)\.unit\("c"\)/g, '');
     globalEditor.setCode(proc_text_replaced);
     return;
   }
@@ -39,8 +38,27 @@ const Proc = (procText, radioSelection, effects = {}) => {
   // radioSelection === 'ON': apply effects only if toggled on
   const distortionEnabled = (effects && effects.distortion === true);
   const reverbEnabled = (effects && effects.reverb === true);
+  const demonicEnabled = (effects && effects.demonic === true);
 
-  // Distortion injection 
+  //  remove all effect markers first to prevent stacking
+  proc_text_replaced = proc_text_replaced
+    .replace(/\.speed\("1\.5"\)\.unit\("c"\)/g, '')
+    .replace(/\.distort\("3"\)/g, '')
+    .replace(/\.room\("0\.9"\)/g, '');
+
+  // Demonic effect - pitch up by 1.5x while keeping tempo
+  if (demonicEnabled) {
+    try {
+      proc_text_replaced = proc_text_replaced
+        .replace(/\.postgain\(/g, `.speed("1.5").unit("c").postgain(`)
+        .replace(/\.gain\(/g, `.speed("1.5").unit("c").gain(`)
+        .replace(/(\.sound\([^)]*\))(?!\.)/g, `$1.speed("1.5").unit("c")`);
+    } catch (err) {
+      console.warn("Demonic injection failed during preprocessing:", err);
+    }
+  }
+
+  // Distortion injection
   if (distortionEnabled) {
     try {
       proc_text_replaced = proc_text_replaced
@@ -50,11 +68,9 @@ const Proc = (procText, radioSelection, effects = {}) => {
     } catch (err) {
       console.warn("Distortion injection failed during preprocessing:", err);
     }
-  } else {
-    // Remove any stray distort markers if user turned distortion off
-    proc_text_replaced = proc_text_replaced.replace(/\.distort\("3"\)/g, '');
   }
 
+  // Reverb injection
   if (reverbEnabled) {
     try {
       proc_text_replaced = proc_text_replaced
@@ -64,8 +80,6 @@ const Proc = (procText, radioSelection, effects = {}) => {
     } catch (err) {
       console.warn("Reverb injection failed during preprocessing:", err);
     }
-  } else {
-    proc_text_replaced = proc_text_replaced.replace(/\.room\("0.9"\)/g, '');
   }
 
   globalEditor.setCode(proc_text_replaced);
@@ -91,7 +105,6 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
         console.error("Canvas with id='roll' not found. Visualization will not work.");
         return;
       }
-
       canvas.width = canvas.width * 2;
       canvas.height = canvas.height * 2;
       const drawContext = canvas.getContext('2d');
@@ -125,7 +138,7 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
 
     return () => {
     };
-  }, []); 
+  }, []);
 
   useEffect(() => {
     if (hasRun.current) {
@@ -165,7 +178,6 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setAlertMessage(null)}
           ></div>
-
           <div className="relative bg-gradient-to-br from-cyan-400 to-blue-500 p-1 rounded-xl shadow-2xl max-w-md w-full mx-4 animate-[scale-in_0.2s_ease-out]">
             <div className="bg-slate-900 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">

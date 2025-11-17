@@ -17,7 +17,7 @@ const App = () => {
   // Effects toggles
   const [effects, setEffects] = useState({
     reverb: false,
-    chipmunk: false,
+    demonic: false,
     distortion: false,
   });
 
