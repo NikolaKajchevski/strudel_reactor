@@ -9,6 +9,7 @@ import { getAudioContext, webaudioOutput, registerSynthSounds } from '@strudel/w
 import { registerSoundfonts } from '@strudel/soundfonts';
 import { stranger_tune } from '../audio/tunes';
 import D3Pianoroll from './D3Pianoroll';
+import { preprocessVolume } from '../../Components/audio/preprocessingLogic';
 
 // Hold StrudelMirror instance globally
 let globalEditor = null;
@@ -36,6 +37,7 @@ const Proc = (procText, radioSelection, effects = {}, volume = 50) => {
   }
 
   // Apply volume preprocessing first
+  proc_text_replaced = preprocessVolume(proc_text_replaced, volume);
 
   // radioSelection === 'ON': apply effects only if toggled on
   const distortionEnabled = (effects && effects.distortion === true);

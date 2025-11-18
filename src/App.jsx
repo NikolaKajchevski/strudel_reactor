@@ -22,9 +22,7 @@ const App = () => {
   });
 
   const [sliders, setSliders] = useState({
-    value: 50,
-    bass: 50,
-    treble: 50,
+    volume: 50,
   });
 
   // Ref to access editor methods
@@ -136,6 +134,7 @@ const App = () => {
             ref={editorRef}
             radioSelection={radioSelection}
             effects={effects}
+            volume={sliders.volume}
           />
 
           <PlaybackControls
@@ -169,7 +168,7 @@ const App = () => {
             </div>
           </PanelWrapper>
 
-
+          
         </div>
       </div>
     </div>
