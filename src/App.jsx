@@ -169,11 +169,7 @@ const App = () => {
             </div>
           </PanelWrapper>
 
-          <PanelWrapper title="Pianoroll Visualization" icon={AudioLines}>
-            <div className="p-4">
-              <canvas id="roll" className="w-full h-40 bg-black/50 rounded-lg"></canvas>
-            </div>
-          </PanelWrapper>
+
         </div>
       </div>
     </div>

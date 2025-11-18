@@ -3,12 +3,12 @@ import { Music, Activity } from 'lucide-react';
 import PanelWrapper from "../../layout/PanelWrapper";
 import { StrudelMirror } from '@strudel/codemirror';
 import { evalScope } from '@strudel/core';
-import { drawPianoroll } from '@strudel/draw';
 import { initAudioOnFirstClick } from '@strudel/webaudio';
 import { transpiler } from '@strudel/transpiler';
 import { getAudioContext, webaudioOutput, registerSynthSounds } from '@strudel/webaudio';
 import { registerSoundfonts } from '@strudel/soundfonts';
 import { stranger_tune } from '../audio/tunes';
+import D3Pianoroll from './D3Pianoroll';
 
 // Hold StrudelMirror instance globally
 let globalEditor = null;
@@ -19,7 +19,7 @@ const ProcessText = (radioSelection) => (match, ...args) => {
   return replace;
 };
 
-const Proc = (procText, radioSelection, effects = {}) => {
+const Proc = (procText, radioSelection, effects = {}, volume = 50) => {
   if (!globalEditor) return;
   const replacementFunction = ProcessText(radioSelection);
   let proc_text_replaced = procText.replaceAll('<p1_Radio>', replacementFunction);
@@ -34,6 +34,8 @@ const Proc = (procText, radioSelection, effects = {}) => {
     globalEditor.setCode(proc_text_replaced);
     return;
   }
+
+  // Apply volume preprocessing first
 
   // radioSelection === 'ON': apply effects only if toggled on
   const distortionEnabled = (effects && effects.distortion === true);
@@ -85,29 +87,23 @@ const Proc = (procText, radioSelection, effects = {}) => {
   globalEditor.setCode(proc_text_replaced);
 };
 
-const ProcAndPlay = (procText, radioSelection, effects) => {
+const ProcAndPlay = (procText, radioSelection, effects, volume) => {
   if (globalEditor != null && globalEditor.repl.state.started === true) {
-    Proc(procText, radioSelection, effects);
+    Proc(procText, radioSelection, effects, volume);
     globalEditor.evaluate();
   }
 };
 
-const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
+const PreprocessorEditor = forwardRef(({ radioSelection, effects, volume }, ref) => {
   const [procText, setProcText] = useState(stranger_tune);
   const editorRootRef = useRef(null);
   const hasRun = useRef(false);
   const [alertMessage, setAlertMessage] = useState(null);
+  const [drawData, setDrawData] = useState({ haps: [], time: 0 });
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     if (!hasRun.current) {
-      const canvas = document.getElementById('roll');
-      if (!canvas) {
-        console.error("Canvas with id='roll' not found. Visualization will not work.");
-        return;
-      }
-      canvas.width = canvas.width * 2;
-      canvas.height = canvas.height * 2;
-      const drawContext = canvas.getContext('2d');
       const drawTime = [-2, 2];
 
       globalEditor = new StrudelMirror({
@@ -116,7 +112,9 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
         transpiler,
         root: editorRootRef.current,
         drawTime,
-        onDraw: (haps, time) => drawPianoroll({ haps, time, ctx: drawContext, drawTime, fold: 0 }),
+        onDraw: (haps, time) => {
+          setDrawData({ haps, time });
+        },
         prebake: async () => {
           initAudioOnFirstClick();
           const loadModules = evalScope(
@@ -132,7 +130,7 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
 
       setProcText(stranger_tune);
       // initial processing with current props
-      Proc(stranger_tune, radioSelection, effects);
+      Proc(stranger_tune, radioSelection, effects, volume);
       hasRun.current = true;
     }
 
@@ -140,9 +138,17 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
     };
   }, []);
 
+  // Add useEffect for volume changes - handles real-time volume updates
+  useEffect(() => {
+    if (hasRun.current && isPlaying) {
+      Proc(procText, radioSelection, effects, volume);
+      globalEditor.evaluate();
+    }
+  }, [volume]);
+
   useEffect(() => {
     if (hasRun.current) {
-      Proc(procText, radioSelection, effects);
+      Proc(procText, radioSelection, effects, volume);
     }
   }, [radioSelection, effects, procText]);
 
@@ -153,6 +159,7 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
   useImperativeHandle(ref, () => ({
     evaluate: async () => {
       try {
+        setIsPlaying(true);
         await globalEditor?.evaluate();
       } catch (error) {
         const errorMsg = error.message || error.toString();
@@ -164,10 +171,16 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
         }
       }
     },
-    stop: () => globalEditor?.stop(),
-    preprocess: () => Proc(procText, radioSelection, effects),
-    procAndPlay: () => ProcAndPlay(procText, radioSelection, effects),
-  }), [procText, radioSelection, effects]);
+    stop: () => {
+      setIsPlaying(false);
+      globalEditor?.stop();
+    },
+    preprocess: () => Proc(procText, radioSelection, effects, volume),
+    procAndPlay: () => {
+      setIsPlaying(true);
+      ProcAndPlay(procText, radioSelection, effects, volume);
+    },
+  }), [procText, radioSelection, effects, volume]);
 
   return (
     <div>
@@ -233,6 +246,17 @@ const PreprocessorEditor = forwardRef(({ radioSelection, effects }, ref) => {
             </div>
           </div>
         </div>
+      </PanelWrapper>
+
+      <br />
+
+      <PanelWrapper title="Pianoroll Visualization" icon={Activity}>
+        <D3Pianoroll
+          haps={drawData.haps}
+          time={drawData.time}
+          drawTime={[-2, 2]}
+          height={300}
+        />
       </PanelWrapper>
     </div>
   );
